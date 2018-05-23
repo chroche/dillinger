@@ -13,6 +13,14 @@
         * > nomad encrypt
 
     * Upload secrets to AWS SM
+    Secrets created manually
+    Files uploaded with
+```bash
+> aws secretsmanager --profile recs-live create-secret --name recs-util-file-recs-ca.crt --kms-key-id alias/recs/master-live --secret-binary fileb://recs-ca.crt
+> aws secretsmanager --profile recs-live create-secret --name recs-util-file-gitlab.id_rsa --kms-key-id alias/recs/master-live --secret-binary fileb://gitlab.id_rsa
+> aws secretsmanager --profile recs-live create-secret --name recs-util-file-jenkins_users --kms-key-id alias/recs/master-live --secret-binary fileb://local_users
+```
+
     * Update Nomad config with UUID
 
     * Copy Puppet keys from /etc/puppetlabs/puppet/keys, upload to S3 keys/
@@ -50,8 +58,25 @@ Check that the config is consistent between servers and worker nodes
 > jq . < /etc/nomad.d/config.json
 ```
 
+8. Build and publish the Docker images
+```bash
+> cd recs-util-nomad/docker/jenkins-master
+> make pull
+> make publish ENV=live
+> cd recs-util-nomad/docker/jenkins-agent-terraform
+> make pull
+> make publish ENV=live
+> cd recs-util-nomad/docker/jenkins-agent-lambda
+> make pull
+> make publish ENV=live
+```
 
-
-
+9. Launch Jenkins
+```bash
+> cd recs-util-nomad/nomad
+> make import ENV=live
+> make deploy ENV=live JOB=fabio
+> make deploy ENV=live JOB=jenkins
+```
 
 
