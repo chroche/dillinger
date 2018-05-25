@@ -1,5 +1,13 @@
 # Jenkins deployment walk-through
 
+This document details the step-by-step actions to deploy a Jenkins server in a Nomad cluster, using Docker containers both for the master server and the execution agents. It runs against the Recommenders Live account, although moving to a different account should be fairly easy.
+
+## Terraform configuration
+
+All actions against AWS are handled by Terraform and (mostly) implement the Core Engineering Team's [Compliance Framework](https://confluence.cbsels.com/display/TRCE/TIO+RP+Platform+%7C+Compliance+Framework) requirements.
+
+### Account bootstrrap and VPC creation
+These steps set up a new AWS account to be managed by Terraform and create the basic components like VPC, subnets, Route53 zones, etc. The corresponding code is in the [recs-core-infra](https://gitlab.et-scm.com/recs/recs-core-infra) repository.
 1. Bootstrap account, cf README
 2. Create Utility VPC, be careful of being able to connect to Puppet (ssh-add with only one key, .ssh/config set up properly, VPN on)
 3. Create main VPC
@@ -64,9 +72,6 @@ Check that the config is consistent between servers and worker nodes
 > make pull
 > make publish ENV=live
 > cd recs-util-nomad/docker/jenkins-agent-terraform
-> make pull
-> make publish ENV=live
-> cd recs-util-nomad/docker/jenkins-agent-lambda
 > make pull
 > make publish ENV=live
 ```
