@@ -130,3 +130,4 @@ At that point you should be able to connect to the Jenkins server at `https://je
 
 #### Creating Jenkins jobs
 Jenkins jobs are written in [Groovy](http://groovy-lang.org/single-page-documentation.html) using the [Job-DSL](https://github.com/jenkinsci/job-dsl-plugin/wiki) and [Pipeline](https://jenkins.io/doc/book/pipeline) plugins.
+Jobs for Recommenders are defined as pipelines in [recs-util-jenkins-jobs](https://gitlab.et-scm.com/recs/recs-util-jenkins-jobs) using  [shared libraries](https://jenkins.io/doc/book/pipeline/shared-libraries/#defining-declarative-pipelines).
