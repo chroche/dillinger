@@ -64,10 +64,10 @@ The Consul and Nomad servers GUI can then be accessed throughv an SSH tunnel to 
 > make gui ENV=live
 ```
 #### Troubleshooting
-The most likely reason for which the Consul or Nomad servers fail to start is that the Puppet configuration created above is incorrect.
-In order to check this, SSH to one of the server or worker nodes and inspect the content of the `/etc/consul.d/config.json` and `/etc/nomad.d/config.json` files. Check that the values are consistent between nodes.
+The most likely reason for which the Consul or Nomad servers would fail to start is that the Puppet configuration created above is incorrect.
+In order to check this, SSH to one of the server or worker nodes and inspect the content of the `/etc/consul.d/config.json` and `/etc/nomad.d/config.json` files as described below. Check that the values are correct and consistent between nodes. If necessary correct the Puppet configuration and repeat the steps above.
 ```bash
-> ssh <nomad_server_ip>
+> ssh admin@<cluster_instance_ip>
 > sudo -s
 # apt-get -y install jq
 # jq . < /etc/consul.d/config.json
@@ -113,14 +113,15 @@ Docker images needs to be created for the Jenkins master and agents, and publish
 > cd recs-util-nomad/docker/jenkins-agent-terraform
 > make pull
 > make publish ENV=live
+etc
 ```
-
-### Jenkins launch
+### Launching Jenkins
+Jenkins is launched as a Nomad job as follows:
 ```bash
 > cd recs-util-nomad/nomad
-> make import ENV=live
-> make deploy ENV=live JOB=fabio
+> make import ENV=live              # Import certificates required to connect to the cluster
+> make deploy ENV=live JOB=fabio    # Fabio is a load-balancer for Nomad jobs
 > make deploy ENV=live JOB=jenkins
 ```
-
+At that point you should be able to connect to the Jenkins server at `https://jenkins.util.recs.d.elsevier.com`.
 
