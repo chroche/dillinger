@@ -39,51 +39,70 @@ This phase creates the Nomad cluster in the Utility VPC.
 #### Cluster configuration
 As a first step, the cluster configuration needs to be updated as follows.
 - A unique cluster ID must be generated, typically with ```python -c 'import uuid; print str(uuid.uuid4())'```, and updated in the [Terraform variables](https://gitlab.et-scm.com/recs/recs-util-nomad/blob/master/terraform/live.tfvars#L25) and Puppet configuration ([servers](https://gitlab.et-scm.com/recs/recs-util-puppet-config/blob/master/hiera/instance_classification/prod/roles/container_server.yaml#L26) and [worker nodes](https://gitlab.et-scm.com/recs/recs-util-puppet-config/blob/master/hiera/instance_classification/prod/roles/container_server.yaml#L26)).
-- Certificates must be generated for the new environment as described [here](https://gitlab.et-scm.com/recs/recs-util-nomad#certificates-generation).
-- The [Puppet configuration](https://gitlab.et-scm.com/recs/recs-util-puppet-config/tree/master/hiera/instance_classification/prod/roles) needs to be manually updated with the content of the EYAML-encrypted files generated in the `tls` folder. On Mac OS a convenient way of doing this is to copy the files in the paste bin (clipboard) using ```pbcopy < puppet-conf-server.yaml``` and then pasting it at the end of the corresponding config file.
-- Then the Puppet config needs to be pushed to Gitlab (```git push origin master```) and the Puppet server made to load the new files:
+- Certificates must be generated for the new environment and uploaded to S3 as described [here](https://gitlab.et-scm.com/recs/recs-util-nomad#certificates-generation).
+- The [Puppet configuration](https://gitlab.et-scm.com/recs/recs-util-puppet-config/tree/master/hiera/instance_classification/prod/roles) needs to be manually updated with the content of the EYAML-encrypted files generated in the `tls` folder by the previous step. On Mac OS a convenient way of doing this is to copy a file to the paste bin (clipboard) using ```pbcopy < puppet-conf-server.yaml``` and then pasting it at the end of the corresponding config file (`recs-util-puppet-config/hiera/instance_classification/prod/roles/container_server.yaml` in this case).
+- Then the new Puppet config needs to be pushed to Gitlab with
 ```bash
-> ssh centos@10.188.240.244 sudo /usr/bin/r10k_with_lock deploy environment -p -v debug
-```
-
-
-
-```
-    * Update Nomad config with UUID
-
-    * Copy Puppet keys from /etc/puppetlabs/puppet/keys, upload to S3 keys/
-    * Upload CA files to S3 ca/
-5. Generate certificates
-```
-> cd recs-util-nomad/tls
-> make veryclean
-> make import ENV=live  # Import Root CA & Puppet certificates and keys
-> make all    ENV=live  # Create all certificates and EAMML-encrypted config files
-> make export ENV=live  # Upload certificates to S3
-```
-
-6. Update Puppet config manually pbcopy < puppet-conf-server.yaml etc.
-Push config to repo and update Puppet server
-
-```bash
+> git commit -am 'Nomad config for Live'
 > git push origin master
+```
+- and the Puppet server made to load the new files:
+```bash
 > ssh centos@<puppet_server_ip> sudo /usr/bin/r10k_with_lock deploy environment -p -v debug
 ```
-
-7. Create Nomad cluster
-
+### Cluster creation
+Terraform can then be launched to build the cluster:
 ```bash
 > cd recs-util-nomad/terraform
 > awsudo -u recs-live make init ENV=live
+> awsudo -u recs-live make plan ENV=live
+> awsudo -u recs-live make apply
 ```
-# Troubleshooting
-
-Most likely the Puppet config is incorrect
-Check that the config is consistent between servers and worker nodes
-
+The Consul and Nomad servers GUI can then be accessed throughv an SSH tunnel to the Bastion server, which is autoamted as follows:
 ```bash
+> cd recs-util-nomad/nomad
+> make gui ENV=live
+```
+### Troubleshooting
+The most likely reason for which the Consul or Nomad servers fail to start is that the Puppet configuration created above is incorrect.
+In order to check this, SSH to one of the server or worker nodes and inspect the content of the `/etc/consul.d/config.json` and `/etc/nomad.d/config.json` files. Check that the values are consistent between nodes.
+```bash
+> ssh <nomad_server_ip>
+> sudo -s
+> apt-get -y install jq
 > jq . < /etc/consul.d/config.json
-> jq . < /etc/nomad.d/config.json
+```
+```json
+{
+  "acl_datacenter": "us-east-1",
+  "acl_default_policy": "deny",
+  "acl_down_policy": "extend-cache",
+  "acl_master_token": "e60d406f-6c3c-48de-8948-d0891d0e28b9",
+  "acl_token": "e60d406f-6c3c-48de-8948-d0891d0e28b9",
+  "advertise_addr": "10.149.0.166",
+  "bind_addr": "0.0.0.0",
+  "ca_file": "/etc/consul.d/tls/recs-ca.crt",
+  "cert_file": "/etc/consul.d/tls/consul-server.crt",
+  "client_addr": "0.0.0.0",
+  "data_dir": "/opt/consul",
+  "datacenter": "us-east-1",
+  "disable_remote_exec": true,
+  "enable_syslog": true,
+  "encrypt": "jniUSnfs+X14gKOUAaXzFg==",
+  "key_file": "/etc/consul.d/tls/consul-server.key",
+  "log_level": "INFO",
+  "ports": {
+    "http": -1,
+    "https": 8500
+  },
+  "retry_join": [
+    "provider=aws region=us-east-1 addr_type=private_v4 tag_key=ClusterName tag_value=container-f1fdef65-495e-4f99-8ab5-98dc59faffec"
+  ],
+  "server": true,
+  "verify_incoming_https": false,
+  "verify_incoming_rpc": true,
+  "verify_outgoing": true
+}
 ```
 
 8. Build and publish the Docker images
