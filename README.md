@@ -110,7 +110,7 @@ In order to check this, SSH to one of the server or worker nodes and inspect the
 Docker images needs to be created for the Jenkins master and agents, and publish to the AWS ECR repositories. This is done with the following:
 ```bash
 > cd recs-util-nomad/docker/jenkins-master
-> make pull
+> make pull              # Retrieve latest version of base Docker image
 > make publish ENV=live
 > cd recs-util-nomad/docker/jenkins-agent-terraform
 > make pull
