@@ -1,6 +1,6 @@
 # Jenkins deployment walk-through
 
-This document details the step-by-step actions to deploy a Jenkins server in a Nomad cluster, using Docker containers both for the master server and the execution agents. It runs against the Recommenders Live account, although moving to a different account should be fairly easy.
+This document details the step-by-step actions taken to deploy a Jenkins server in a new Nomad cluster, using Docker containers for both the master server and the execution agents. It runs against the Recommenders Live account, although moving to a different account should be fairly straightforward.
 
 ## Terraform configuration
 
@@ -104,7 +104,9 @@ In order to check this, SSH to one of the server or worker nodes and inspect the
   "verify_outgoing": true
 }
 ```
-### Docker images creation
+### Jenkins deployment
+
+#### Creating Docker images
 Docker images needs to be created for the Jenkins master and agents, and publish to the AWS ECR repositories. This is done with the following:
 ```bash
 > cd recs-util-nomad/docker/jenkins-master
@@ -115,13 +117,16 @@ Docker images needs to be created for the Jenkins master and agents, and publish
 > make publish ENV=live
 etc
 ```
-### Launching Jenkins
-Jenkins is launched as a Nomad job as follows:
+Note that the [Jenkins configuration files](https://gitlab.et-scm.com/recs/recs-util-nomad/tree/SDPR-1226/docker/jenkins-master/ref/init.groovy.d) in `recs-utils-nomad/docker/jenkins-master/ref/init.groovy.d` are fairly specific to the Recommenders team and would need to be adapted to a new environment.
+#### Launching the Jenkins server
+Jenkins is launched as a Nomad job as follows. We first launch [Fabio](https://github.com/fabiolb/fabio) which is a small load-balancer for Nomad jobs.
 ```bash
 > cd recs-util-nomad/nomad
 > make import ENV=live              # Import certificates required to connect to the cluster
-> make deploy ENV=live JOB=fabio    # Fabio is a load-balancer for Nomad jobs
+> make deploy ENV=live JOB=fabio    
 > make deploy ENV=live JOB=jenkins
 ```
 At that point you should be able to connect to the Jenkins server at `https://jenkins.util.recs.d.elsevier.com`.
 
+#### Creating Jenkins jobs
+Jenkins jobs are written in [Groovy](http://groovy-lang.org/single-page-documentation.html) using the [Job-DSL](https://github.com/jenkinsci/job-dsl-plugin/wiki) and [Pipeline](https://jenkins.io/doc/book/pipeline) plugins.
