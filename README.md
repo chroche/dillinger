@@ -50,7 +50,7 @@ As a first step, the cluster configuration needs to be updated as follows.
 ```bash
 > ssh centos@<puppet_server_ip> sudo /usr/bin/r10k_with_lock deploy environment -p -v debug
 ```
-### Cluster creation
+#### Cluster creation
 Terraform can then be launched to build the cluster:
 ```bash
 > cd recs-util-nomad/terraform
@@ -63,14 +63,14 @@ The Consul and Nomad servers GUI can then be accessed throughv an SSH tunnel to 
 > cd recs-util-nomad/nomad
 > make gui ENV=live
 ```
-### Troubleshooting
+#### Troubleshooting
 The most likely reason for which the Consul or Nomad servers fail to start is that the Puppet configuration created above is incorrect.
 In order to check this, SSH to one of the server or worker nodes and inspect the content of the `/etc/consul.d/config.json` and `/etc/nomad.d/config.json` files. Check that the values are consistent between nodes.
 ```bash
 > ssh <nomad_server_ip>
 > sudo -s
-> apt-get -y install jq
-> jq . < /etc/consul.d/config.json
+# apt-get -y install jq
+# jq . < /etc/consul.d/config.json
 ```
 ```json
 {
@@ -79,7 +79,7 @@ In order to check this, SSH to one of the server or worker nodes and inspect the
   "acl_down_policy": "extend-cache",
   "acl_master_token": "e60d406f-6c3c-48de-8948-d0891d0e28b9",
   "acl_token": "e60d406f-6c3c-48de-8948-d0891d0e28b9",
-  "advertise_addr": "10.149.0.166",
+  "advertise_addr": "10.188.240.241",
   "bind_addr": "0.0.0.0",
   "ca_file": "/etc/consul.d/tls/recs-ca.crt",
   "cert_file": "/etc/consul.d/tls/consul-server.crt",
@@ -104,8 +104,8 @@ In order to check this, SSH to one of the server or worker nodes and inspect the
   "verify_outgoing": true
 }
 ```
-
-8. Build and publish the Docker images
+### Docker images creation
+Docker images needs to be created for the Jenkins master and agents, and publish to the AWS ECR repositories. This is done with the following:
 ```bash
 > cd recs-util-nomad/docker/jenkins-master
 > make pull
@@ -115,7 +115,7 @@ In order to check this, SSH to one of the server or worker nodes and inspect the
 > make publish ENV=live
 ```
 
-9. Launch Jenkins
+### Jenkins launch
 ```bash
 > cd recs-util-nomad/nomad
 > make import ENV=live
