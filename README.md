@@ -127,7 +127,24 @@ Jenkins is launched as a Nomad job as follows. We first launch [Fabio](https://g
 > make deploy ENV=live JOB=jenkins
 ```
 At that point you should be able to connect to the Jenkins server at `https://jenkins.util.recs.d.elsevier.com`.
-
+### Jenkins configuration
+#### Initialisation scripts
+When a new Jenkins image is laucnhed, the first thing that happens is that all files in the `/usr/share/jenkins/ref` folder are copied to Jenkins's home `/var/jenkins_home`. Additionally, if a file has the `.override` extension, it replaces its existing counterpart there. The files that are copied include the following directories:
+- `init.groovy.d` 
+- `plugins`
+- `jobs`
+##### Groovy scripts
+Then when the Jenkins server starts, it first executes all `.groovy` files in the `/var/jenkins_home/init.groovy.d` directory. These files are as follows:
+- `g10_security.groovy`
+- `g12_users.groovy`
+- `g14_credentials.groovy`
+- `g20_jekins_url.groovy`
+- `g30_shared_libs.groovy`
+- `g32_nomad_cloud.groovy`
+- `g40_slack.groovy`
+- `g99_jenkins_save.groovy`
+##### Plugins
+##### Jobs
 #### Creating Jenkins jobs
 Jenkins jobs are written in [Groovy](http://groovy-lang.org/single-page-documentation.html) using the [Job-DSL](https://github.com/jenkinsci/job-dsl-plugin/wiki) and [Pipeline](https://jenkins.io/doc/book/pipeline) plugins.
 Jobs for Recommenders are defined as pipelines in [recs-util-jenkins-jobs](https://gitlab.et-scm.com/recs/recs-util-jenkins-jobs) using  [shared libraries](https://jenkins.io/doc/book/pipeline/shared-libraries/#defining-declarative-pipelines).
