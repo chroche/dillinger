@@ -201,3 +201,10 @@ then copy `target/nomad.hpi` to the `ref/plugins` folder.
 ##### Jobs
 Only one `Seed` job is created there, using a classic XML configuration. It creates all other jobs at startup time by downloading the [recs-util-jenkins-jobs](https://gitlab.et-scm.com/recs/recs-util-jenkins-jobs) repository and executing all `.groovy` files there using the [Job DSL plugin](https://github.com/jenkinsci/job-dsl-plugin).
 
+#### Jenkins agents
+All Jenkins jobs are handled by dedicated [agents](https://wiki.jenkins.io/display/JENKINS/Distributed+builds) with specific capabilities (e.g., `terraform`, `sbt`, `maven`, etc). The agents are built as Docker images in the [recs-util-nomad/docker](https://gitlab.et-scm.com/recs/recs-util-nomad/tree/master/docker) directory and registered with Jenkins by the [init.groovy.d/g32_nomad_cloud.groovy](https://gitlab.et-scm.com/recs/recs-util-nomad/blob/master/docker/jenkins-master/ref/init.groovy.d/g32_nomad_cloud.groovy.override) initialisation file. The important parameters in this configuation are described below:
+- `cpu`, `memory`, `disk`: amount of CPU (in MHz), of memory (in MiB) and storage (in MiB) allocated by Nomad to an instance of this agent;
+- `labels`: space-separated list of capabilities provided by this agent, which will be required by Jenkins jobs using the [node](https://jenkins.io/doc/book/pipeline/syntax/#agent) directive;
+- `idleMinutes`: amount of time (in min) that the agent will stay around after completing a job, which provides an opportunity for it to be reused by another job and will be much faster than spawning a new agent;
+- `numExecutors`: number of jobs that the agent is allowed to process concurrently;
+- `hostVolumes`: definition of volumes to be mounted in the agent by the Docker driver, useful to allow an agent to access the Docker daemon socket.
