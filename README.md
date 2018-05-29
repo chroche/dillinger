@@ -112,6 +112,7 @@ Docker images needs to be created for the Jenkins master and agents, and publish
 > cd recs-util-nomad/docker/jenkins-master
 > make pull              # Retrieve latest version of base Docker image
 > make publish ENV=live
+
 > cd recs-util-nomad/docker/jenkins-agent-terraform
 > make pull
 > make publish ENV=live
@@ -129,22 +130,32 @@ Jenkins is launched as a Nomad job as follows. We first launch [Fabio](https://g
 At that point you should be able to connect to the Jenkins server at `https://jenkins.util.recs.d.elsevier.com`.
 ### Jenkins configuration
 #### Initialisation scripts
-When a new Jenkins image is laucnhed, the first thing that happens is that all files in the `/usr/share/jenkins/ref` folder are copied to Jenkins's home `/var/jenkins_home`. Additionally, if a file has the `.override` extension, it replaces its existing counterpart there. The files that are copied include the following directories:
-- `init.groovy.d` 
-- `plugins`
-- `jobs`
+When a new Jenkins image is laucnhed, the first thing that happens is that all files in the `/usr/share/jenkins/ref` folder are copied to Jenkins's home `/var/jenkins_home`. Additionally, if a file has the `.override` extension, it replaces its existing counterpart there. The files that are copied include the following directories, described in more detail below:
+- `init.groovy.d`: initialisation scripts
+- `plugins`: local plugins
+- `jobs`: predefined jobs
 ##### Groovy scripts
 Then when the Jenkins server starts, it first executes all `.groovy` files in the `/var/jenkins_home/init.groovy.d` directory. These files are as follows:
-- `g10_security.groovy`
-- `g12_users.groovy`
-- `g14_credentials.groovy`
-- `g20_jekins_url.groovy`
-- `g30_shared_libs.groovy`
-- `g32_nomad_cloud.groovy`
-- `g40_slack.groovy`
-- `g99_jenkins_save.groovy`
+- `g10_security.groovy`: applies a number of security-related settings, including disabling all unsafe master-agent communication protocols;
+- `g12_users.groovy`: parses the `/usr/share/jenkins/creds/jenkins_users` file and creates the corresponding lcoal users;
+- `g14_credentials.groovy`: loads `.txt` and `.id_rsa` files present in the `/usr/share/jenkins/creds` folder and register them with the Jenkins credentials facility;
+- `g20_jekins_url.groovy`: sets the public (for end users) and private (for agents) server URLs;
+- `g30_shared_libs.groovy`: register the [shared libraries](https://jenkins.io/doc/book/pipeline/shared-libraries/) used for pipelines definition;
+- `g32_nomad_cloud.groovy`: creates a Nomad Cloud for the [Nomad plugin](https://github.com/jenkinsci/nomad-plugin);
+- `g40_slack.groovy`: allows publishing to Slack;
+- `g99_jenkins_save.groovy`: saves the updated Jenkins configuration.
 ##### Plugins
+This installation uses the [Nomad plugin](https://github.com/jenkinsci/nomad-plugin) for scheduling agents on the Nomad cluster. Normally required plugins are listed in the `ref/plugins.txt` file and retrieved automatically at startup with their dependencies  from the official [Jenkins plugins repository](https://plugins.jenkins.io/nomad). However, since the published version of the Nomad plugin is currently only `0.4`, which lacks features like volume mounts required for Docker-capable agents, we had to compile and install a more recent version as follows:
+```
+> git clone https://github.com/jenkinsci/nomad-plugin
+> cd nomad-plugin
+> vi pom.xml        # Bump version number to e.g. 0.5.1
+> mvn package
+> mvn install
+```
+then copy `target/nomad.hpi` to the `ref/plugins` folder.
 ##### Jobs
+Only one `Seed` job is created there, using a classic XML configuration. It creates all other jobs at startup time by downloading the [recs-util-jenkins-jobs](https://gitlab.et-scm.com/recs/recs-util-jenkins-jobs) repository and executing all `.groovy` files there using the [Job DSL plugin](https://github.com/jenkinsci/job-dsl-plugin).
 #### Creating Jenkins jobs
 Jenkins jobs are written in [Groovy](http://groovy-lang.org/single-page-documentation.html) using the [Job-DSL](https://github.com/jenkinsci/job-dsl-plugin/wiki) and [Pipeline](https://jenkins.io/doc/book/pipeline) plugins.
 Jobs for Recommenders are defined as pipelines in [recs-util-jenkins-jobs](https://gitlab.et-scm.com/recs/recs-util-jenkins-jobs) using  [shared libraries](https://jenkins.io/doc/book/pipeline/shared-libraries/#defining-declarative-pipelines).
